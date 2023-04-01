@@ -15,6 +15,7 @@
 #include <SPI.h>          // f.k. for Arduino-1.5.2
 #include "Adafruit_GFX.h"// Hardware-specific library
 #include <MCUFRIEND_kbv.h>
+#include <string.h>
 MCUFRIEND_kbv tft;
 //#include <Adafruit_TFTLCD.h>
 //Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
@@ -62,7 +63,8 @@ int screenWidth;
 int screenHeight;
 
 // Input
-int incomingByte = 0;
+char incomingByte[2];
+memset(incomingByte, 0, 2);
 int acceptInput = 0;
 
 // Player 1
@@ -256,42 +258,42 @@ void draw()
 void getPlayerOneInput()
 {
   if (playerOneState == IDLE && (millis() - roundStart < roundTime) && playerTwoResult != CORRECT) {
-    if(incomingByte == 'w')
+    if(incomingByte[0] == 'w')
     {
       playerOneColor = RED;
       playerOneState = UP;
       gameLogic();
       draw();
     }
-    if(incomingByte == 'a')
+    if(incomingByte[0] == 'a')
     {
       playerOneColor = BLUE;
       playerOneState = LEFT;
       gameLogic();
       draw();
     }
-    if(incomingByte == 's')
+    if(incomingByte[0] == 's')
     {
       playerOneColor = GREEN;
       playerOneState = DOWN;
       gameLogic();
       draw();
     }
-    if(incomingByte == 'd')
+    if(incomingByte[0] == 'd')
     {
       playerOneColor = YELLOW;
       playerOneState = RIGHT;
       gameLogic();
       draw();
     }
-    if(incomingByte == 'f')
+    if(incomingByte[0] == 'f')
     {
       playerOneColor = CYAN;
       playerOneState = BUTTON;
       gameLogic();
       draw();
     }
-    if(incomingByte == 'g')
+    if(incomingByte[0] == 'g')
     {
       playerOneColor = WHITE;
       playerOneState = FAKE;
@@ -304,42 +306,42 @@ void getPlayerOneInput()
 void getPlayerTwoInput()
 {
   if (playerTwoState == IDLE && (millis() - roundStart < roundTime) && playerOneResult != CORRECT) {
-    if(incomingByte == 'i')
+    if(incomingByte[1] == 'i')
     {
       playerTwoColor = RED;
       playerTwoState = UP;
       gameLogic();
       draw();
     }
-    if(incomingByte == 'j')
+    if(incomingByte[1] == 'j')
     {
       playerTwoColor = BLUE;
       playerTwoState = LEFT;
       gameLogic();
       draw();
     }
-    if(incomingByte == 'k')
+    if(incomingByte[1] == 'k')
     {
       playerTwoColor = GREEN;
       playerTwoState = DOWN;
       gameLogic();
       draw();
     }
-    if(incomingByte == 'l')
+    if(incomingByte[1] == 'l')
     {
       playerTwoColor = YELLOW;
       playerTwoState = RIGHT;
       gameLogic();
       draw();
     } 
-    if(incomingByte == ';')
+    if(incomingByte[1] == ';')
     {
       playerTwoColor = CYAN;
       playerTwoState = BUTTON;
       gameLogic();
       draw();
     }
-    if(incomingByte == '\'')
+    if(incomingByte[1] == '\'')
     {
       playerTwoColor = WHITE;
       playerTwoState = FAKE;
@@ -500,6 +502,7 @@ void resetGame() {
 }
 
 void setup() {
+  Wire.begin(); // start the master, the controller has address 6
   Serial.begin(9600);  // start serial for output
   uint16_t ID = tft.readID();
 
@@ -535,7 +538,11 @@ void loop() {
   if(Serial.available() > 0 && acceptInput)
   {
     // Read the incoming byte
-    incomingByte = Serial.read();
+    // incomingByte = Serial.read();
+    Wire.requestFrom(6, 2); // Request 2 bytes from the controller
+    incomingByte[0] = Wire.read();
+    incomingByte[1] = Wire.read();
+    //Serial.println
   }
 
   if(millis() - roundStart > roundTime)
@@ -572,10 +579,10 @@ void loop() {
     }
       
     newRound();
-    while(Serial.available() > 0)
-      Serial.read();      
-    incomingByte = 0;
-
+    while(Wire.available() > 0)
+      Wire.read();      
+    
+    memset(incomingByte, 0, 2);
   }
 
   // the CPU's state is now changed
@@ -596,5 +603,7 @@ void loop() {
   getPlayerOneInput();
   getPlayerTwoInput();
 
-  incomingByte = 0; // Clear Input
+  // incomingByte[0] = 0; // Clear Input
+  // incomingByte[1] = 0;
+  memset(incomingByte, 0, 2); 
 }
