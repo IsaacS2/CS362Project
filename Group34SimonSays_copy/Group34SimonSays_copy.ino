@@ -64,7 +64,7 @@ int screenHeight;
 
 // Input
 char incomingByte[2];
-memset(incomingByte, 0, 2);
+//memset(incomingByte, 0, 2);
 int acceptInput = 0;
 
 // Player 1
@@ -502,6 +502,9 @@ void resetGame() {
 }
 
 void setup() {
+  incomingByte[0] = 0;
+  incomingByte[1] = 0;
+
   Wire.begin(); // start the master, the controller has address 6
   Serial.begin(9600);  // start serial for output
   uint16_t ID = tft.readID();
@@ -535,11 +538,12 @@ void setup() {
 
 void loop() {
   // Keyboard input
-  if(Serial.available() > 0 && acceptInput)
+  Wire.requestFrom(6, 2); // Request 2 bytes from the controller
+  if(Wire.available() > 0 && acceptInput)
   {
     // Read the incoming byte
     // incomingByte = Serial.read();
-    Wire.requestFrom(6, 2); // Request 2 bytes from the controller
+    //Wire.requestFrom(6, 2); // Request 2 bytes from the controller
     incomingByte[0] = Wire.read();
     incomingByte[1] = Wire.read();
     //Serial.println
