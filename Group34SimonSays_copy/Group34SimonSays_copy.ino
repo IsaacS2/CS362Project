@@ -56,16 +56,14 @@ MCUFRIEND_kbv tft;
 #define FAKEBUTTON 18
 
 
-#include <Wire.h>
 
 // Screen
 int screenWidth;
 int screenHeight;
 
 // Input
-char incomingByte[2];
-//memset(incomingByte, 0, 2);
-int acceptInput = 0;
+int incomingByte = 0;
+
 
 // Player 1
 int playerOneState = IDLE;
@@ -221,7 +219,6 @@ void startScreen() {
   //tft.print("Simon Says!");
 }
 
-
 void winScreen()
 {
   tft.fillScreen(0x07F2);
@@ -258,42 +255,42 @@ void draw()
 void getPlayerOneInput()
 {
   if (playerOneState == IDLE && (millis() - roundStart < roundTime) && playerTwoResult != CORRECT) {
-    if(incomingByte[0] == 'w')
+    if(incomingByte == 'w')
     {
       playerOneColor = RED;
       playerOneState = UP;
       gameLogic();
       draw();
     }
-    if(incomingByte[0] == 'a')
+    if(incomingByte == 'a')
     {
       playerOneColor = BLUE;
       playerOneState = LEFT;
       gameLogic();
       draw();
     }
-    if(incomingByte[0] == 's')
+    if(incomingByte == 's')
     {
       playerOneColor = GREEN;
       playerOneState = DOWN;
       gameLogic();
       draw();
     }
-    if(incomingByte[0] == 'd')
+    if(incomingByte == 'd')
     {
       playerOneColor = YELLOW;
       playerOneState = RIGHT;
       gameLogic();
       draw();
     }
-    if(incomingByte[0] == 'f')
+    if(incomingByte == 'f')
     {
       playerOneColor = CYAN;
       playerOneState = BUTTON;
       gameLogic();
       draw();
     }
-    if(incomingByte[0] == 'g')
+    if(incomingByte == 'g')
     {
       playerOneColor = WHITE;
       playerOneState = FAKE;
@@ -306,42 +303,42 @@ void getPlayerOneInput()
 void getPlayerTwoInput()
 {
   if (playerTwoState == IDLE && (millis() - roundStart < roundTime) && playerOneResult != CORRECT) {
-    if(incomingByte[1] == 'i')
+    if(incomingByte == 'i')
     {
       playerTwoColor = RED;
       playerTwoState = UP;
       gameLogic();
       draw();
     }
-    if(incomingByte[1] == 'j')
+    if(incomingByte == 'j')
     {
       playerTwoColor = BLUE;
       playerTwoState = LEFT;
       gameLogic();
       draw();
     }
-    if(incomingByte[1] == 'k')
+    if(incomingByte == 'k')
     {
       playerTwoColor = GREEN;
       playerTwoState = DOWN;
       gameLogic();
       draw();
     }
-    if(incomingByte[1] == 'l')
+    if(incomingByte == 'l')
     {
       playerTwoColor = YELLOW;
       playerTwoState = RIGHT;
       gameLogic();
       draw();
     } 
-    if(incomingByte[1] == ';')
+    if(incomingByte == ';')
     {
       playerTwoColor = CYAN;
       playerTwoState = BUTTON;
       gameLogic();
       draw();
     }
-    if(incomingByte[1] == '\'')
+    if(incomingByte == '\'')
     {
       playerTwoColor = WHITE;
       playerTwoState = FAKE;
@@ -502,10 +499,8 @@ void resetGame() {
 }
 
 void setup() {
-  incomingByte[0] = 0;
-  incomingByte[1] = 0;
+  incomingByte = 0;
 
-  Wire.begin(); // start the master, the controller has address 6
   Serial.begin(9600);  // start serial for output
   uint16_t ID = tft.readID();
 
@@ -530,7 +525,6 @@ void setup() {
   
   while(Serial.available() > 0)
     Serial.read();
-  acceptInput = 1;
 
   resetGame();
   newRound();
@@ -538,15 +532,13 @@ void setup() {
 
 void loop() {
   // Keyboard input
-  Wire.requestFrom(6, 2); // Request 2 bytes from the controller
-  if(Wire.available() > 0 && acceptInput)
+
+  if(Serial.available() > 0)
   {
     // Read the incoming byte
-    // incomingByte = Serial.read();
-    //Wire.requestFrom(6, 2); // Request 2 bytes from the controller
-    incomingByte[0] = Wire.read();
-    incomingByte[1] = Wire.read();
-    //Serial.println
+    incomingByte = Serial.read();
+
+    
   }
 
   if(millis() - roundStart > roundTime)
@@ -583,10 +575,10 @@ void loop() {
     }
       
     newRound();
-    while(Wire.available() > 0)
-      Wire.read();      
+    while(Serial.available() > 0)
+      Serial.read();      
     
-    memset(incomingByte, 0, 2);
+    incomingByte = 0;
   }
 
   // the CPU's state is now changed
@@ -607,7 +599,8 @@ void loop() {
   getPlayerOneInput();
   getPlayerTwoInput();
 
-  // incomingByte[0] = 0; // Clear Input
-  // incomingByte[1] = 0;
-  memset(incomingByte, 0, 2); 
+  incomingByte = 0;
+
 }
+
+
