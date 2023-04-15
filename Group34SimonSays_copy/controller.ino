@@ -74,8 +74,8 @@ int p2SendDebounceTime = 0;
 
 
 int debounceDelay = 80;
-char p1SendByte = 0;
-char p2SendByte = 0;
+char p1SendByte = '1';
+char p2SendByte = '2';
 
 
 char p1SendByteOld;

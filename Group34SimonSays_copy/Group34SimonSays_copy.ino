@@ -64,6 +64,8 @@ int screenHeight;
 // Input
 int incomingByte = 0;
 
+// Buzzer
+const int buzzerPin = 10;
 
 // Player 1
 int playerOneState = IDLE;
@@ -73,6 +75,7 @@ int playerOneX;
 int playerOneY;
 int playerOneLives;
 int playerOneFake = 1;
+int playerOneReady = 0;
 
 // Player 2
 int playerTwoState = IDLE;
@@ -82,6 +85,7 @@ int playerTwoX;
 int playerTwoY;
 int playerTwoLives;
 int playerTwoFake = 1;
+int playerTwoReady = 0;
 
 // CPU
 int cpuState = IDLE;
@@ -214,9 +218,123 @@ void startScreen() {
   tft.setTextColor(GRAY);
   tft.setTextSize(3);
   tft.print("Simon Says!");
-  //tft.setCursor((screenWidth/4) - 4, (screenHeight/2) + 2);
-  //tft.setTextColor(WHITE);
-  //tft.print("Simon Says!");
+}
+
+//
+// readyUp
+//
+// This function is for the logic behind the ready screen.
+// Both players must be ready for the game to continue.
+//
+void readyUp() {
+  playerOneReady = 0;
+  playerTwoReady = 0;
+  while(!playerOneReady || !playerTwoReady) {
+    if(Serial.available() > 0)
+    {
+      // Read the incoming byte
+      incomingByte = Serial.read();
+
+      if(incomingByte == '1' || incomingByte == 'w' || incomingByte == 'a' || incomingByte == 's' || incomingByte == 'd' || incomingByte == 'f' || incomingByte == 'g')
+      {
+        playerOneReady = 1;
+        readyScreen();
+      }
+      if(incomingByte == '2' || incomingByte == 'i' || incomingByte == 'j' || incomingByte == 'k' || incomingByte == 'l' || incomingByte == ';' || incomingByte == '\'')
+      {
+        playerTwoReady = 1;
+        readyScreen();
+      }
+    }
+  }
+  
+  while(Serial.available() > 0)
+  {
+    Serial.read();
+  }
+
+  delay(1000);
+  gameStartScreen();
+}
+
+void winSound()
+{
+  // D5 F#5 A5
+  tone(buzzerPin, 587, 200);
+  delay(100);
+  tone(buzzerPin, 740, 200);
+  delay(100);
+  tone(buzzerPin, 880, 200);
+  delay(100);
+  noTone(buzzerPin);
+}
+
+void tieSound() 
+{
+  // D5 C5 B5
+  tone(buzzerPin, 587, 200);
+  delay(100);
+  tone(buzzerPin, 523, 200);
+  delay(100);
+  tone(buzzerPin, 494, 200);
+  delay(100);
+  noTone(buzzerPin);
+}
+
+// 
+// readyScreen
+//
+// This function draws the ready screen for the game.
+// It will draw only each of the players only if they
+// are currently ready.
+//
+void readyScreen() 
+{
+  tft.fillScreen(BLACK);
+  tft.setCursor(cpuX - 55, cpuY);
+  tft.setTextSize(2);
+  tft.print("Ready Up!");
+
+  tft.fillCircle(playerOneX, playerOneY, 40, playerOneColor);
+  tft.setCursor(playerOneX, playerOneY);
+  if (playerOneReady) {
+    tft.setTextSize(2);
+    tft.print("R!");
+  }
+  tft.fillCircle(playerTwoX, playerTwoY, 40, playerOneColor);
+  tft.setCursor(playerTwoX, playerTwoY);
+  if (playerTwoReady) {
+    tft.setTextSize(2);
+    tft.print("R!");
+  }  
+}
+
+//
+// gameStartScreen
+//
+// This function draws the game start screen for the game.
+// It will draw at the start of each round after both players
+// are ready.
+//
+void gameStartScreen() 
+{
+  tft.fillScreen(BLUE);
+  tft.setCursor(cpuX - 60, cpuY);
+  tft.setTextSize(2);
+  tft.print("Game Starting!");
+
+  tft.fillCircle(playerOneX, playerOneY, 40, playerOneColor);
+  tft.setCursor(playerOneX, playerOneY);
+  tft.setTextColor(BLACK);
+  tft.setTextSize(2);
+  tft.print("R!");
+  
+  tft.fillCircle(playerTwoX, playerTwoY, 40, playerOneColor);
+  tft.setCursor(playerTwoX, playerTwoY);
+  tft.setTextSize(2);
+  tft.print("R!");
+  delay(1000);
+  incomingByte = 0;
 }
 
 void winScreen()
@@ -230,7 +348,6 @@ void winScreen()
   if(playerOneLives == 0)
     tft.print("Player 2 Wins!");
 }
-
 
 void tieScreen()
 {
@@ -483,6 +600,7 @@ void newRound() {
   draw();
   roundStart = millis();
   roundTime = cpuDelay + timer;
+  //readyUp();
 }
 
 
@@ -496,6 +614,8 @@ void resetGame() {
   playerTwoLives = 3;
   playerOneFake = 1;
   playerTwoFake = 1;
+  readyScreen();
+  readyUp();
 }
 
 void setup() {
@@ -503,6 +623,9 @@ void setup() {
 
   Serial.begin(9600);  // start serial for output
   uint16_t ID = tft.readID();
+
+  // Buzzer
+  pinMode(buzzerPin, OUTPUT);
 
   // Screen 
   tft.begin(ID);
@@ -548,6 +671,8 @@ void loop() {
 
     if(playerOneLives == 0 && playerTwoLives == 0)
     {
+      tieScreen();
+      tieSound();
       for(int i = 0; i < 10; i++)
         tieScreen();
       delay(resultScreenDelay);
@@ -561,6 +686,8 @@ void loop() {
     }
     else if(playerOneLives == 0 || playerTwoLives == 0)
     {
+      winScreen();
+      winSound();
       for(int i = 0; i < 10; i++)
         winScreen();
       delay(resultScreenDelay);
