@@ -229,6 +229,8 @@ void startScreen() {
 void readyUp() {
   playerOneReady = 0;
   playerTwoReady = 0;
+  incomingByte = 0;
+  readyScreen();
   while(!playerOneReady || !playerTwoReady) {
     if(Serial.available() > 0)
     {
@@ -614,7 +616,8 @@ void resetGame() {
   playerTwoLives = 3;
   playerOneFake = 1;
   playerTwoFake = 1;
-  readyScreen();
+  playerOneColor = WHITE;
+  playerTwoColor = WHITE;
   readyUp();
 }
 
@@ -729,5 +732,3 @@ void loop() {
   incomingByte = 0;
 
 }
-
-
