@@ -2,9 +2,6 @@
 // i.e. control pins A0-A4.  Data D2-D9.  microSD D10-D13.
 // Touchscreens are normally A1, A2, D7, D6 but the order varies
 //
-// This demo should work with most Adafruit TFT libraries
-// If you are not using a shield,  use a full Adafruit constructor()
-// e.g. Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 #define LCD_CS A3 // Chip Select goes to Analog 3
 #define LCD_CD A2 // Command/Data goes to Analog 2
@@ -17,8 +14,6 @@
 #include <MCUFRIEND_kbv.h>
 #include <string.h>
 MCUFRIEND_kbv tft;
-//#include <Adafruit_TFTLCD.h>
-//Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 // Assign human-readable names to some common 16-bit color values:
 #define	BLACK   0x0000
@@ -101,10 +96,11 @@ int lifeSize = 10;
 // Timer
 unsigned long fakeStart = 0; // will store last time the timer started
 unsigned long timer = 3000;
-unsigned long maxCPUDelay = 3000;  // maximum time before CPU
+unsigned long maxCPUDelay = 3000;  // maximum time before CPU issues a command
+unsigned long minCPUDelay = 2000;  // minimum time before CPU issues a command
 unsigned long cpuDelay;
 unsigned long roundTime;
-unsigned long downTime = 2000;
+unsigned long downTime = 10;
 unsigned long fakeDelay = 2000;
 unsigned long roundStart;
 unsigned long resultScreenDelay = 5000;
@@ -538,12 +534,12 @@ void gameLogic() {
           draw();
       }
     
-    /*
-    else  // playerOneState is fake, but player has no more fake plays (playerOneFake <= 0)
+    
+    else if (playerOneState == FAKE)  // playerOneState is fake, but player has no more fake plays (playerOneFake <= 0)
     {
         playerOneState = IDLE;
     }
-    */
+    
     
     //
     // Player 2 has made a move
@@ -576,12 +572,12 @@ void gameLogic() {
           draw(); 
       }
     
-    /*
-    else  // playerOneState is fake, but player has no more fake plays (playerOneFake <= 0)
+    
+    else if (playerTwoState == FAKE)  // playerOneState is fake, but player has no more fake plays (playerOneFake <= 0)
     {
         playerTwoState = IDLE;
     }
-    */
+    
 }
 
 //
@@ -590,7 +586,7 @@ void gameLogic() {
 // This function will initialize a new round of the game
 //
 void newRound() {
-  cpuDelay = random(0, maxCPUDelay);
+  cpuDelay = random(minCPUDelay, maxCPUDelay);
   playerOneState = IDLE;
   playerOneResult = NONE;
   playerOneColor = WHITE;
@@ -670,7 +666,7 @@ void loop() {
   if(millis() - roundStart > roundTime)
   { 
     timeOut();
-    delay(downTime);
+    delay(downTime);  // TODO: Add an indication that Simon is no longer taking commands from players
 
     if(playerOneLives == 0 && playerTwoLives == 0)
     {
@@ -684,6 +680,10 @@ void loop() {
       tft.fillScreen(BLUEMAIN);
       startScreen();
       delay(startScreenDelay);
+      while(Serial.available() > 0)
+      {
+        Serial.read();
+      }
       
       resetGame();  
     }
@@ -699,9 +699,12 @@ void loop() {
       tft.fillScreen(BLUEMAIN);
       startScreen();
       delay(startScreenDelay);
+      while(Serial.available() > 0)
+      {
+        Serial.read();
+      }
 
       resetGame();
-        
     }
       
     newRound();
@@ -732,3 +735,4 @@ void loop() {
   incomingByte = 0;
 
 }
+
