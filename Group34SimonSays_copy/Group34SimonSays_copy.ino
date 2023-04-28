@@ -1,3 +1,4 @@
+// Isaac Sanchez and Sebastian Ho
 //
 // Library and some defined header values written by prenticedavid on Github: https://github.com/prenticedavid
 // The header values and comments were from example code from both the graphicstest.ino file in the example files for the
@@ -6,7 +7,7 @@
 // The MCUFRIEND_kbv Library inherits most of its data from the Adafruit_GFX Library which we also downloaded for this
 // project from the ArduinoIDE.
 // The SPI Library is also used in this code.
-// 
+// MCUFRIEND_kbv Library link: https://github.com/prenticedavid/MCUFRIEND_kbv
 //
 // All the mcufriend.com UNO shields have the same pinout.
 // i.e. control pins A0-A4.  Data D2-D9.  microSD D10-D13.
