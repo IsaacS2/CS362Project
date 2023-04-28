@@ -1,3 +1,13 @@
+//
+// Library and some defined header values written by prenticedavid on Github: https://github.com/prenticedavid
+// The header values and comments were from example code from both the graphicstest.ino file in the example files for the
+// Adafruit TFTLCD Library and the graphicstest_kbv.ino file in the example files for the MCUFRIEND_kbv Library.
+// Luzso is also listed as a library contributor on Github: https://github.com/Luzso
+// The MCUFRIEND_kbv Library inherits most of its data from the Adafruit_GFX Library which we also downloaded for this
+// project from the ArduinoIDE.
+// The SPI Library is also used in this code.
+// 
+//
 // All the mcufriend.com UNO shields have the same pinout.
 // i.e. control pins A0-A4.  Data D2-D9.  microSD D10-D13.
 // Touchscreens are normally A1, A2, D7, D6 but the order varies
