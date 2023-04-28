@@ -107,10 +107,12 @@ unsigned long resultScreenDelay = 5000;
 unsigned long startScreenDelay = 2000;
 unsigned long gameStart;
 
-// cpuDelay = random(maxCPUDelay)
-// Round time = cpuDelay + timer
-// roundTime -> downTime -> ...
 
+//
+// drawPlayerOne
+//
+// This function draws the first player's (player to the left of the screen) current status on the TFT screen.
+//
 void drawPlayerOne()
 {
   tft.fillCircle(playerOneX, playerOneY, 40, playerOneColor);
@@ -137,6 +139,12 @@ void drawPlayerOne()
   } 
 }
 
+
+//
+// drawPlayerTwo
+//
+// This function draws the second player's (player to the right of the screen) current status on the TFT screen.
+//
 void drawPlayerTwo()
 {
   tft.fillCircle(playerTwoX, playerTwoY, 40, playerTwoColor);
@@ -163,6 +171,12 @@ void drawPlayerTwo()
   }
 }
 
+
+//
+// drawCPU
+//
+// This function draws the CPU's (character in the middle of the screen, AKA Simon) current status on the TFT screen.
+//
 void drawCPU()
 {
   tft.fillCircle(cpuX, cpuY, 50, cpuColor);
@@ -185,10 +199,16 @@ void drawCPU()
   }
   if(cpuState == BUTTON || cpuState == FAKEBUTTON)
   {
-    tft.fillCircle(cpuX, cpuY, 40, BLACK);
+    tft.fillCircle(cpuX, cpuY, 40, ~cpuColor);
   }
 }
 
+
+//
+// drawLives
+//
+// This function draws the current amount of lives for both players on the TFT screen.
+//
 void drawLives()
 {
   for(int i = 0; i < playerOneLives; i++)
@@ -206,8 +226,7 @@ void drawLives()
 //
 // startScreen
 //
-// This function draws the start screen for the game,
-// temporarily called "Simon Says"
+// This function draws the start screen for the game, called "Simon Says".
 //
 void startScreen() {
   tft.setCursor((screenWidth/4) - 6, (screenHeight/2));
@@ -215,6 +234,7 @@ void startScreen() {
   tft.setTextSize(3);
   tft.print("Simon Says!");
 }
+
 
 //
 // readyUp
@@ -255,6 +275,12 @@ void readyUp() {
   gameStartScreen();
 }
 
+
+//
+// winSound
+//
+// This function plays the win sound effect at the end of a game.
+//
 void winSound()
 {
   // D5 F#5 A5
@@ -267,6 +293,12 @@ void winSound()
   noTone(buzzerPin);
 }
 
+
+//
+// tieSound
+//
+// This function plays the tie sound effect at the end of a game, when neither player wins.
+//
 void tieSound() 
 {
   // D5 C5 B5
@@ -279,11 +311,11 @@ void tieSound()
   noTone(buzzerPin);
 }
 
+
 // 
 // readyScreen
 //
-// This function draws the ready screen for the game.
-// It will draw only each of the players only if they
+// This function draws the ready screen for the game. It will be called only when one of the players indicate that they
 // are currently ready.
 //
 void readyScreen() 
@@ -307,11 +339,12 @@ void readyScreen()
   }  
 }
 
+
 //
 // gameStartScreen
 //
 // This function draws the game start screen for the game.
-// It will draw at the start of each round after both players
+// It will be drawn at the start of each game once both players
 // are ready.
 //
 void gameStartScreen() 
@@ -335,6 +368,12 @@ void gameStartScreen()
   incomingByte = 0;
 }
 
+
+//
+// winScreen
+//
+// This function draws the win screen for the game.
+// 
 void winScreen()
 {
   tft.fillScreen(0x07F2);
@@ -347,6 +386,12 @@ void winScreen()
     tft.print("Player 2 Wins!");
 }
 
+
+//
+// tieScreen
+//
+// This function draws the tie screen for the game, when neither player wins the game.
+// 
 void tieScreen()
 {
   tft.fillScreen(0xFEE0);
@@ -356,6 +401,13 @@ void tieScreen()
   tft.print("Tie Game!");
 }
 
+
+//
+// draw
+//
+// This function draws the newest state of the game whenever called, such as the
+// the state of players, CPU, and live total.
+// 
 void draw()
 {
   tft.fillScreen(BLACK);    
@@ -367,6 +419,12 @@ void draw()
 }
 
 
+//
+// getPlayerOneInput
+//
+// This function uses the incomingByte value from the controller Arduino to check if player one's state should
+// be changed.
+// 
 void getPlayerOneInput()
 {
   if (playerOneState == IDLE && (millis() - roundStart < roundTime) && playerTwoResult != CORRECT) {
@@ -410,11 +468,17 @@ void getPlayerOneInput()
       playerOneColor = WHITE;
       playerOneState = FAKE;
       gameLogic();
-      //draw();
     }
   }
 }
 
+
+//
+// getPlayerTwoInput
+//
+// This function uses the incomingByte value from the controller Arduino to check if player two's state should
+// be changed.
+// 
 void getPlayerTwoInput()
 {
   if (playerTwoState == IDLE && (millis() - roundStart < roundTime) && playerOneResult != CORRECT) {
@@ -458,15 +522,15 @@ void getPlayerTwoInput()
       playerTwoColor = WHITE;
       playerTwoState = FAKE;
       gameLogic();
-      //draw();
     }
   }
 }
 
+
 //
 // timeOut
 //
-// This function will check the states of the players if the current game's
+// This function will check the states of the players when the current round's
 // timer runs out.
 //
 void timeOut() {
@@ -583,7 +647,7 @@ void gameLogic() {
 //
 // newRound
 //
-// This function will initialize a new round of the game
+// This function will initialize a new round of the game.
 //
 void newRound() {
   cpuDelay = random(minCPUDelay, maxCPUDelay);
@@ -598,14 +662,13 @@ void newRound() {
   draw();
   roundStart = millis();
   roundTime = cpuDelay + timer;
-  //readyUp();
 }
 
 
 //
 // resetGame
 //
-// This function resets the entire game, including resetting players values
+// This function resets the entire game, including resetting players values.
 //
 void resetGame() {
   playerOneLives = 3;
@@ -733,6 +796,4 @@ void loop() {
   getPlayerTwoInput();
 
   incomingByte = 0;
-
 }
-
