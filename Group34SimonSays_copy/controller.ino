@@ -1,4 +1,6 @@
 // Isaac Sanchez, Sebastian Ho
+// References for code: https://iot-guider.com/arduino/serial-communication-between-two-arduino-boards/
+                        https://docs.arduino.cc/built-in-examples/digital/StateChangeDetection
 
 // Player 1 controls
 // Joystick 1 pins
