@@ -1,6 +1,7 @@
 // Isaac Sanchez, Sebastian Ho
 // References for code: https://iot-guider.com/arduino/serial-communication-between-two-arduino-boards/
                         https://docs.arduino.cc/built-in-examples/digital/StateChangeDetection
+                        https://www.arduino.cc/reference/en/language/functions/communication/serial/available/
 
 // Player 1 controls
 // Joystick 1 pins
@@ -107,6 +108,9 @@ void loop() {
     p1SendByte = 's';
   }
 
+  //
+  // Toggle code from https://docs.arduino.cc/built-in-examples/digital/StateChangeDetection
+  //
   if(p1LeftButtonStateOld == 0 && p1LeftButtonStateNew == 1)
   {
     if(p1LeftButtonStateReading == 0)
@@ -123,6 +127,9 @@ void loop() {
 
   p1LeftButtonStateOld = p1LeftButtonStateNew;
 
+  //
+  // Toggle code from https://docs.arduino.cc/built-in-examples/digital/StateChangeDetection
+  //
   if(p1RightButtonStateOld == 0 && p1RightButtonStateNew == 1)
   {
     if(p1RightButtonStateReading == 0)
@@ -139,16 +146,19 @@ void loop() {
 
   p1RightButtonStateOld = p1RightButtonStateNew;
 
+  //
+  // Toggle code from https://docs.arduino.cc/built-in-examples/digital/StateChangeDetection
+  //
   if(p1SendButtonStateOld == 0 && p1SendButtonStateNew == 1)
   {
     if(p1SendButtonStateReading == 0)
     {
-      Serial.print(p1SendByte); 
+      Serial.print(p1SendByte);  // serial communication inspired by https://iot-guider.com/arduino/serial-communication-between-two-arduino-boards/ and https://www.arduino.cc/reference/en/language/functions/communication/serial/available/
       p1SendButtonStateReading = 1;
     }
     else if(p1SendButtonStateReading == 1)
     {
-      Serial.print(p1SendByte); 
+      Serial.print(p1SendByte);  // serial communication inspired by https://iot-guider.com/arduino/serial-communication-between-two-arduino-boards/ and https://www.arduino.cc/reference/en/language/functions/communication/serial/available/
       p1SendButtonStateReading = 0;
     }
   }    
@@ -192,6 +202,9 @@ void loop() {
     p2SendByte = 'k';
   }
 
+  //
+  // Toggle code from https://docs.arduino.cc/built-in-examples/digital/StateChangeDetection
+  //
   if(p2LeftButtonStateOld == 0 && p2LeftButtonStateNew == 1)
   {
     if(p2LeftButtonStateReading == 0)
@@ -208,6 +221,9 @@ void loop() {
 
   p2LeftButtonStateOld = p2LeftButtonStateNew;
 
+  //
+  // Toggle code from https://docs.arduino.cc/built-in-examples/digital/StateChangeDetection
+  //
   if(p2RightButtonStateOld == 0 && p2RightButtonStateNew == 1)
   {
     if(p2RightButtonStateReading == 0)
@@ -224,16 +240,19 @@ void loop() {
 
   p2RightButtonStateOld = p2RightButtonStateNew;
 
+  //
+  // Toggle code from https://docs.arduino.cc/built-in-examples/digital/StateChangeDetection
+  //
   if(p2SendButtonStateOld == 0 && p2SendButtonStateNew == 1)
   {
     if(p2SendButtonStateReading == 0)
     {
-      Serial.print(p2SendByte); 
+      Serial.print(p2SendByte);  // serial communication inspired by https://iot-guider.com/arduino/serial-communication-between-two-arduino-boards/ and https://www.arduino.cc/reference/en/language/functions/communication/serial/available/
       p2SendButtonStateReading = 1;
     }
     else if(p2SendButtonStateReading == 1)
     {
-      Serial.print(p2SendByte); 
+      Serial.print(p2SendByte);  // serial communication inspired by https://iot-guider.com/arduino/serial-communication-between-two-arduino-boards/ and https://www.arduino.cc/reference/en/language/functions/communication/serial/available/
       p2SendButtonStateReading = 0;
     }
   }    
