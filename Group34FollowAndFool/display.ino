@@ -186,7 +186,7 @@ void drawPlayerTwo()
 //
 // drawCPU
 //
-// This function draws the CPU's (character in the middle of the screen, AKA Simon) current status on the TFT screen.
+// This function draws the CPU's (character in the middle of the screen, AKA the leader) current status on the TFT screen.
 //
 void drawCPU()
 {
@@ -237,13 +237,13 @@ void drawLives()
 //
 // startScreen
 //
-// This function draws the start screen for the game, called "Simon Says".
+// This function draws the start screen for the game, called "Follow And Fool".
 //
 void startScreen() {
   tft.setCursor((screenWidth/4) - 6, (screenHeight/2));
   tft.setTextColor(GRAY);
   tft.setTextSize(3);
-  tft.print("Simon Says!");
+  tft.print("Follow And Fool!");
 }
 
 
@@ -575,7 +575,7 @@ void timeOut() {
 // gameLogic
 //
 // This function will hold the game logic for the game; it uses the state of the players, as well as the state 
-// of the Simon Says CPU, to determine if a player has lost, if a player lost a live, or if the game is continuing.
+// of the leader CPU, to determine if a player has lost, if a player lost a live, or if the game is continuing.
 //
 void gameLogic() {
     //
@@ -740,7 +740,7 @@ void loop() {
   if(millis() - roundStart > roundTime)
   { 
     timeOut();
-    delay(downTime);  // TODO: Add an indication that Simon is no longer taking commands from players
+    delay(downTime);  // TODO: Add an indication that the leader is no longer taking commands from players
 
     if(playerOneLives == 0 && playerTwoLives == 0)
     {
