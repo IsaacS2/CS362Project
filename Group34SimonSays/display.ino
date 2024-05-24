@@ -1,23 +1,30 @@
+// Isaac Sanchez and Sebastian Ho
+//
+// Library and some defined header values written by prenticedavid on Github: https://github.com/prenticedavid
+// The header values and comments were from example code from both the graphicstest.ino file in the example files for the
+// Adafruit TFTLCD Library and the graphicstest_kbv.ino file in the example files for the MCUFRIEND_kbv Library.
+// Luzso is also listed as a library contributor on Github: https://github.com/Luzso
+// The MCUFRIEND_kbv Library inherits most of its data from the Adafruit_GFX Library which we also downloaded for this
+// project from the ArduinoIDE.
+// The SPI Library is also used in this code.
+// MCUFRIEND_kbv Library link: https://github.com/prenticedavid/MCUFRIEND_kbv
+//
 // All the mcufriend.com UNO shields have the same pinout.
 // i.e. control pins A0-A4.  Data D2-D9.  microSD D10-D13.
 // Touchscreens are normally A1, A2, D7, D6 but the order varies
 //
-// This demo should work with most Adafruit TFT libraries
-// If you are not using a shield,  use a full Adafruit constructor()
-// e.g. Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 #define LCD_CS A3 // Chip Select goes to Analog 3
 #define LCD_CD A2 // Command/Data goes to Analog 2
 #define LCD_WR A1 // LCD Write goes to Analog 1
 #define LCD_RD A0 // LCD Read goes to Analog 0
-#define LCD_RESET A4 // Can alternately just connect to Arduino's reset pin
+#define LCD_RESET A4 // Can alternatively connect to Arduino's reset pin
 
 #include <SPI.h>          // f.k. for Arduino-1.5.2
 #include "Adafruit_GFX.h"// Hardware-specific library
 #include <MCUFRIEND_kbv.h>
+#include <string.h>
 MCUFRIEND_kbv tft;
-//#include <Adafruit_TFTLCD.h>
-//Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 // Assign human-readable names to some common 16-bit color values:
 #define	BLACK   0x0000
@@ -29,6 +36,8 @@ MCUFRIEND_kbv tft;
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 #define FAKECOLOR 0xC638
+#define GRAY    0x595F69
+#define BLUEMAIN 0x65A4FC
 
 //
 // Player State Values
@@ -53,7 +62,6 @@ MCUFRIEND_kbv tft;
 #define FAKEBUTTON 18
 
 
-#include <Wire.h>
 
 // Screen
 int screenWidth;
@@ -61,6 +69,9 @@ int screenHeight;
 
 // Input
 int incomingByte = 0;
+
+// Buzzer
+const int buzzerPin = 10;
 
 // Player 1
 int playerOneState = IDLE;
@@ -70,6 +81,7 @@ int playerOneX;
 int playerOneY;
 int playerOneLives;
 int playerOneFake = 1;
+int playerOneReady = 0;
 
 // Player 2
 int playerTwoState = IDLE;
@@ -79,6 +91,7 @@ int playerTwoX;
 int playerTwoY;
 int playerTwoLives;
 int playerTwoFake = 1;
+int playerTwoReady = 0;
 
 // CPU
 int cpuState = IDLE;
@@ -94,18 +107,23 @@ int lifeSize = 10;
 // Timer
 unsigned long fakeStart = 0; // will store last time the timer started
 unsigned long timer = 3000;
-unsigned long maxCPUDelay = 3000;  // maximum time before CPU
+unsigned long maxCPUDelay = 3000;  // maximum time before CPU issues a command
+unsigned long minCPUDelay = 2000;  // minimum time before CPU issues a command
 unsigned long cpuDelay;
 unsigned long roundTime;
-unsigned long downTime = 2000;
+unsigned long downTime = 10;
 unsigned long fakeDelay = 2000;
 unsigned long roundStart;
 unsigned long resultScreenDelay = 5000;
+unsigned long startScreenDelay = 2000;
+unsigned long gameStart;
 
-// cpuDelay = random(maxCPUDelay)
-// Round time = cpuDelay + timer
-// roundTime -> downTime -> ...
 
+//
+// drawPlayerOne
+//
+// This function draws the first player's (player to the left of the screen) current status on the TFT screen.
+//
 void drawPlayerOne()
 {
   tft.fillCircle(playerOneX, playerOneY, 40, playerOneColor);
@@ -132,6 +150,12 @@ void drawPlayerOne()
   } 
 }
 
+
+//
+// drawPlayerTwo
+//
+// This function draws the second player's (player to the right of the screen) current status on the TFT screen.
+//
 void drawPlayerTwo()
 {
   tft.fillCircle(playerTwoX, playerTwoY, 40, playerTwoColor);
@@ -158,6 +182,12 @@ void drawPlayerTwo()
   }
 }
 
+
+//
+// drawCPU
+//
+// This function draws the CPU's (character in the middle of the screen, AKA Simon) current status on the TFT screen.
+//
 void drawCPU()
 {
   tft.fillCircle(cpuX, cpuY, 50, cpuColor);
@@ -180,10 +210,16 @@ void drawCPU()
   }
   if(cpuState == BUTTON || cpuState == FAKEBUTTON)
   {
-    tft.fillCircle(cpuX, cpuY, 40, BLACK);
+    tft.fillCircle(cpuX, cpuY, 40, ~cpuColor);
   }
 }
 
+
+//
+// drawLives
+//
+// This function draws the current amount of lives for both players on the TFT screen.
+//
 void drawLives()
 {
   for(int i = 0; i < playerOneLives; i++)
@@ -197,6 +233,158 @@ void drawLives()
   }
 }
 
+
+//
+// startScreen
+//
+// This function draws the start screen for the game, called "Simon Says".
+//
+void startScreen() {
+  tft.setCursor((screenWidth/4) - 6, (screenHeight/2));
+  tft.setTextColor(GRAY);
+  tft.setTextSize(3);
+  tft.print("Simon Says!");
+}
+
+
+//
+// readyUp
+//
+// This function is for the logic behind the ready screen.
+// Both players must be ready for the game to continue.
+//
+void readyUp() {
+  playerOneReady = 0;
+  playerTwoReady = 0;
+  incomingByte = 0;
+  readyScreen();
+  while(!playerOneReady || !playerTwoReady) {
+    if(Serial.available() > 0)
+    {
+      // Read the incoming byte
+      incomingByte = Serial.read();
+
+      if(incomingByte == '1' || incomingByte == 'w' || incomingByte == 'a' || incomingByte == 's' || incomingByte == 'd' || incomingByte == 'f' || incomingByte == 'g')
+      {
+        playerOneReady = 1;
+        readyScreen();
+      }
+      if(incomingByte == '2' || incomingByte == 'i' || incomingByte == 'j' || incomingByte == 'k' || incomingByte == 'l' || incomingByte == ';' || incomingByte == '\'')
+      {
+        playerTwoReady = 1;
+        readyScreen();
+      }
+    }
+  }
+  
+  while(Serial.available() > 0)
+  {
+    Serial.read();
+  }
+
+  delay(1000);
+  gameStartScreen();
+}
+
+
+//
+// winSound
+//
+// This function plays the win sound effect at the end of a game.
+//
+void winSound()
+{
+  // D5 F#5 A5
+  tone(buzzerPin, 587, 200);
+  delay(100);
+  tone(buzzerPin, 740, 200);
+  delay(100);
+  tone(buzzerPin, 880, 200);
+  delay(100);
+  noTone(buzzerPin);
+}
+
+
+//
+// tieSound
+//
+// This function plays the tie sound effect at the end of a game, when neither player wins.
+//
+void tieSound() 
+{
+  // D5 C5 B5
+  tone(buzzerPin, 587, 200);
+  delay(100);
+  tone(buzzerPin, 523, 200);
+  delay(100);
+  tone(buzzerPin, 494, 200);
+  delay(100);
+  noTone(buzzerPin);
+}
+
+
+// 
+// readyScreen
+//
+// This function draws the ready screen for the game. It will be called only when one of the players indicate that they
+// are currently ready.
+//
+void readyScreen() 
+{
+  tft.fillScreen(BLACK);
+  tft.setCursor(cpuX - 55, cpuY);
+  tft.setTextSize(2);
+  tft.print("Ready Up!");
+
+  tft.fillCircle(playerOneX, playerOneY, 40, playerOneColor);
+  tft.setCursor(playerOneX, playerOneY);
+  if (playerOneReady) {
+    tft.setTextSize(2);
+    tft.print("R!");
+  }
+  tft.fillCircle(playerTwoX, playerTwoY, 40, playerOneColor);
+  tft.setCursor(playerTwoX, playerTwoY);
+  if (playerTwoReady) {
+    tft.setTextSize(2);
+    tft.print("R!");
+  }  
+}
+
+
+//
+// gameStartScreen
+//
+// This function draws the game start screen for the game.
+// It will be drawn at the start of each game once both players
+// are ready.
+//
+void gameStartScreen() 
+{
+  tft.fillScreen(BLUE);
+  tft.setCursor(cpuX - 60, cpuY);
+  tft.setTextSize(2);
+  tft.print("Game Starting!");
+
+  tft.fillCircle(playerOneX, playerOneY, 40, playerOneColor);
+  tft.setCursor(playerOneX, playerOneY);
+  tft.setTextColor(BLACK);
+  tft.setTextSize(2);
+  tft.print("R!");
+  
+  tft.fillCircle(playerTwoX, playerTwoY, 40, playerOneColor);
+  tft.setCursor(playerTwoX, playerTwoY);
+  tft.setTextSize(2);
+  tft.print("R!");
+  delay(1000);
+  incomingByte = 0;
+}
+
+
+//
+// winScreen
+//
+// This function draws the win screen for the game.
+// 
 void winScreen()
 {
   tft.fillScreen(0x07F2);
@@ -209,6 +397,12 @@ void winScreen()
     tft.print("Player 2 Wins!");
 }
 
+
+//
+// tieScreen
+//
+// This function draws the tie screen for the game, when neither player wins the game.
+// 
 void tieScreen()
 {
   tft.fillScreen(0xFEE0);
@@ -218,6 +412,13 @@ void tieScreen()
   tft.print("Tie Game!");
 }
 
+
+//
+// draw
+//
+// This function draws the newest state of the game whenever called, such as the
+// the state of players, CPU, and live total.
+// 
 void draw()
 {
   tft.fillScreen(BLACK);    
@@ -229,9 +430,15 @@ void draw()
 }
 
 
+//
+// getPlayerOneInput
+//
+// This function uses the incomingByte value from the controller Arduino to check if player one's state should
+// be changed.
+// 
 void getPlayerOneInput()
 {
-  if (playerOneState == IDLE && (millis() - roundStart < roundTime) ) {
+  if (playerOneState == IDLE && (millis() - roundStart < roundTime) && playerTwoResult != CORRECT) {
     if(incomingByte == 'w')
     {
       playerOneColor = RED;
@@ -272,14 +479,20 @@ void getPlayerOneInput()
       playerOneColor = WHITE;
       playerOneState = FAKE;
       gameLogic();
-      //draw();
     }
   }
 }
 
+
+//
+// getPlayerTwoInput
+//
+// This function uses the incomingByte value from the controller Arduino to check if player two's state should
+// be changed.
+// 
 void getPlayerTwoInput()
 {
-  if (playerTwoState == IDLE && (millis() - roundStart < roundTime) ) {
+  if (playerTwoState == IDLE && (millis() - roundStart < roundTime) && playerOneResult != CORRECT) {
     if(incomingByte == 'i')
     {
       playerTwoColor = RED;
@@ -320,15 +533,15 @@ void getPlayerTwoInput()
       playerTwoColor = WHITE;
       playerTwoState = FAKE;
       gameLogic();
-      //draw();
     }
   }
 }
 
+
 //
 // timeOut
 //
-// This function will check the states of the players if the current game's
+// This function will check the states of the players when the current round's
 // timer runs out.
 //
 void timeOut() {
@@ -368,63 +581,76 @@ void gameLogic() {
     //
     // Player 1 has made a move
     //
-    if (playerOneState != IDLE && playerOneState != FAKE && playerOneResult != LOST && playerOneResult != LIVELOST && playerOneResult != CORRECT) {
-      if (playerOneState != cpuState) {  // Player 1 made a wrong move
-        if (playerOneLives <= 1) {  // Player 1 lost
-          playerOneResult = LOST;
-        } 
-        else {  // Player 1 loses a life
-          playerOneResult = LIVELOST;
+      if (playerOneState != IDLE && playerOneState != FAKE && playerOneResult != LOST && playerOneResult != LIVELOST && playerOneResult != CORRECT) {
+        if (playerOneState != cpuState) {  // Player 1 made a wrong move
+          if (playerOneLives <= 1) {  // Player 1 lost
+            playerOneResult = LOST;
+          } 
+          else {  // Player 1 loses a life
+            playerOneResult = LIVELOST;
+          }
+          playerOneLives--;
         }
-        playerOneLives--;
+        else  // Player 1 made the correct move
+        {
+          playerOneResult = CORRECT;
+        }
       }
-      else  // Player 1 made the correct move
+      else if (playerOneState == FAKE && cpuState == IDLE && playerOneFake)
       {
-        playerOneResult = CORRECT;
+          roundTime += fakeDelay;
+          cpuDelay += fakeDelay;
+          playerOneFake = 0;
+          playerOneState = IDLE;
+          fakeStart = millis();
+          
+          cpuColor = FAKECOLOR;
+          cpuState = random(FAKERIGHT, FAKEBUTTON + 1);
+          draw();
       }
-    }
-    else if (playerOneState == FAKE && cpuState == IDLE && playerOneFake)
+    
+    
+    else if (playerOneState == FAKE)  // playerOneState is fake, but player has no more fake plays (playerOneFake <= 0)
     {
-        roundTime += fakeDelay;
-        cpuDelay += fakeDelay;
-        playerOneFake = 0;
         playerOneState = IDLE;
-        fakeStart = millis();
-        
-        cpuColor = FAKECOLOR;
-        cpuState = random(FAKERIGHT, FAKEBUTTON + 1);
-        draw();
     }
-
+    
+    
     //
     // Player 2 has made a move
     //
-    if (playerTwoState != IDLE && playerTwoState != FAKE && playerTwoResult != LOST && playerTwoResult != LIVELOST && playerTwoResult != CORRECT) {
-      if (playerTwoState != cpuState) {  // Player 2 made a wrong move
-        if (playerTwoLives <= 1) {  // Player 2 lost
-          playerTwoResult = LOST;
-        } 
-        else {  // Player 2 loses a life
-          playerTwoResult = LIVELOST;
+      if (playerTwoState != IDLE && playerTwoState != FAKE && playerTwoResult != LOST && playerTwoResult != LIVELOST && playerTwoResult != CORRECT) {
+        if (playerTwoState != cpuState) {  // Player 2 made a wrong move
+          if (playerTwoLives <= 1) {  // Player 2 lost
+            playerTwoResult = LOST;
+          } 
+          else {  // Player 2 loses a life
+            playerTwoResult = LIVELOST;
+          }
+          playerTwoLives--;
         }
-        playerTwoLives--;
+        else  // Player 1 made the correct move
+        {
+          playerTwoResult = CORRECT;
+        }
       }
-      else  // Player 1 made the correct move
+      else if (playerTwoState == FAKE && cpuState == IDLE && playerTwoFake)
       {
-        playerTwoResult = CORRECT;
+          roundTime += fakeDelay;
+          cpuDelay += fakeDelay;
+          playerTwoFake = 0;
+          playerTwoState = IDLE;
+          fakeStart = millis();
+          
+          cpuColor = FAKECOLOR;
+          cpuState = random(FAKERIGHT, FAKEBUTTON + 1);
+          draw(); 
       }
-    }
-    else if (playerTwoState == FAKE && cpuState == IDLE && playerTwoFake)
+    
+    
+    else if (playerTwoState == FAKE)  // playerOneState is fake, but player has no more fake plays (playerOneFake <= 0)
     {
-        roundTime += fakeDelay;
-        cpuDelay += fakeDelay;
-        playerTwoFake = 0;
         playerTwoState = IDLE;
-        fakeStart = millis();
-        
-        cpuColor = FAKECOLOR;
-        cpuState = random(FAKERIGHT, FAKEBUTTON + 1);
-        draw(); 
     }
     
 }
@@ -432,10 +658,10 @@ void gameLogic() {
 //
 // newRound
 //
-// This function will initialize a new round of the game
+// This function will initialize a new round of the game.
 //
 void newRound() {
-  cpuDelay = random(0, maxCPUDelay);
+  cpuDelay = random(minCPUDelay, maxCPUDelay);
   playerOneState = IDLE;
   playerOneResult = NONE;
   playerOneColor = WHITE;
@@ -449,29 +675,42 @@ void newRound() {
   roundTime = cpuDelay + timer;
 }
 
+
 //
 // resetGame
 //
-// This function resets the entire game, including resetting players values
+// This function resets the entire game, including resetting players values.
 //
 void resetGame() {
   playerOneLives = 3;
   playerTwoLives = 3;
   playerOneFake = 1;
   playerTwoFake = 1;
+  playerOneColor = WHITE;
+  playerTwoColor = WHITE;
+  readyUp();
 }
 
 void setup() {
+  incomingByte = 0;
+
   Serial.begin(9600);  // start serial for output
   uint16_t ID = tft.readID();
+
+  // Buzzer
+  pinMode(buzzerPin, OUTPUT);
 
   // Screen 
   tft.begin(ID);
   tft.setRotation(1);
-  tft.fillScreen(BLACK);
+  tft.fillScreen(BLUEMAIN);
   screenWidth = tft.width();
   screenHeight = tft.height();
 
+  // Start screen
+  startScreen();
+  delay(startScreenDelay);
+  
   // Game positions
   playerOneX = screenWidth / 4;
   playerOneY = screenHeight * 2 / 3;
@@ -479,51 +718,78 @@ void setup() {
   playerTwoY = screenHeight * 2 / 3;
   cpuX = screenWidth / 2;
   cpuY = 60;
+  
+  while(Serial.available() > 0)
+    Serial.read();
 
   resetGame();
-  draw();
   newRound();
 }
 
 void loop() {
   // Keyboard input
+
   if(Serial.available() > 0)
   {
     // Read the incoming byte
     incomingByte = Serial.read();
+
+    
   }
 
   if(millis() - roundStart > roundTime)
   { 
     timeOut();
-    delay(downTime);
+    delay(downTime);  // TODO: Add an indication that Simon is no longer taking commands from players
 
     if(playerOneLives == 0 && playerTwoLives == 0)
     {
+      tieScreen();
+      tieSound();
       for(int i = 0; i < 10; i++)
         tieScreen();
       delay(resultScreenDelay);
-      resetGame();
       
+      // Show start screen again
+      tft.fillScreen(BLUEMAIN);
+      startScreen();
+      delay(startScreenDelay);
+      while(Serial.available() > 0)
+      {
+        Serial.read();
+      }
+      
+      resetGame();  
     }
     else if(playerOneLives == 0 || playerTwoLives == 0)
     {
+      winScreen();
+      winSound();
       for(int i = 0; i < 10; i++)
         winScreen();
       delay(resultScreenDelay);
+
+      // Show start screen again
+      tft.fillScreen(BLUEMAIN);
+      startScreen();
+      delay(startScreenDelay);
+      while(Serial.available() > 0)
+      {
+        Serial.read();
+      }
+
       resetGame();
-      
     }
-    
+      
     newRound();
     while(Serial.available() > 0)
       Serial.read();      
+    
     incomingByte = 0;
-
   }
 
   // the CPU's state is now changed
-  if((millis() - roundStart > roundTime - timer) && cpuState == IDLE )
+  if((millis() - roundStart > roundTime - timer) && cpuState == IDLE)
   {
     cpuState = random(RIGHT, BUTTON + 1);
     draw();
@@ -536,10 +802,9 @@ void loop() {
     cpuColor = WHITE;
     draw();
   }
-  
+    
   getPlayerOneInput();
   getPlayerTwoInput();
 
-  incomingByte = 0; // Clear Input
-  
+  incomingByte = 0;
 }
